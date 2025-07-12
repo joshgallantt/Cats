@@ -64,7 +64,7 @@ struct CounterView: View {
 A protocol for view models that publish transient events (navigation, alerts, side effects) via a Combine publisher. Complements StateViewModel for one-off or ephemeral events.
 
 **How it works:**
-- Define a ViewEvent enum for all possible events.
+- Define an Event that conforms to ViewEvent protocol.
 - Expose an eventPublisher (AnyPublisher<ViewEvent, Never>).
 - Send events using a PassthroughSubject from methods.
 
