@@ -170,7 +170,7 @@ struct ObserveProductInWishlistUseCase {
     private let repository: WishlistRepository
     init(repository: WishlistRepository) { self.repository = repository }
 
-    func callAsFunction(productID: String) -> AnyPublisher<Bool, Never> {
+    func execute(productID: String) -> AnyPublisher<Bool, Never> {
         repository.observeIsWishlisted(productID: productID)
     }
 }
@@ -179,7 +179,7 @@ struct AddProductToWishlistUseCase {
     private let repository: WishlistRepository
     init(repository: WishlistRepository) { self.repository = repository }
 
-    func callAsFunction(productID: String) async throws {
+    func execute(productID: String) async throws {
         try await repository.addToWishlist(productID: productID)
     }
 }
@@ -188,7 +188,7 @@ struct RemoveProductFromWishlistUseCase {
     private let repository: WishlistRepository
     init(repository: WishlistRepository) { self.repository = repository }
 
-    func callAsFunction(productID: String) async throws {
+    func execute(productID: String) async throws {
         try await repository.removeFromWishlist(productID: productID)
     }
 }
