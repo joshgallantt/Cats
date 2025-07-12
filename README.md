@@ -133,59 +133,122 @@ Cats provides a generic, thread-safe, LRU + TTL in-memory cache with Combine pub
 
 **1. Set Up Repository to Use Cache**
 ```
+import Combine
+
 final class WishlistRepository {
+    private let cache: ObservableMemoryCache<String, Set<String>>
+    private let service: WishlistService
+    private let wishlistKey = "wishlist"
 
-    private let cache: ObservableMemoryCache<String, Bool>
-
-    init(cache: ObservableMemoryCache<String, Bool>) {
+    init(cache: ObservableMemoryCache<String, Set<String>>, service: WishlistService) {
         self.cache = cache
+        self.service = service
     }
 
-    func observeIsWishlisted(productID: String) -> AnyPublisher<Bool?, Never> {
-        cache.publisher(for: productID)
+    func observeIsWishlisted(productID: String) -> AnyPublisher<Bool, Never> {
+        cache.publisher(for: wishlistKey)
+            .map { ids in ids?.contains(productID) ?? false }
+            .eraseToAnyPublisher()
     }
 
-    func setIsWishlisted(_ value: Bool, for productID: String) {
-        cache.put(productID, value: value)
+    func addToWishlist(productID: String) async throws {
+        let updatedIDs = try await service.addProduct(productID: productID)
+        cache.put(wishlistKey, value: Set(updatedIDs))
+    }
+
+    func removeFromWishlist(productID: String) async throws {
+        let updatedIDs = try await service.removeProduct(productID: productID)
+        cache.put(wishlistKey, value: Set(updatedIDs))
     }
 }
+
 ```
 
-**2. Set Up Use Case to Use Repository**
+**2. Set Up Use Cases to Use Repository**
 ```
-init(repository: WishlistRepository) {
-    self.repository = repository
+struct ObserveProductInWishlistUseCase {
+    private let repository: WishlistRepository
+    init(repository: WishlistRepository) { self.repository = repository }
+
+    func callAsFunction(productID: String) -> AnyPublisher<Bool, Never> {
+        repository.observeIsWishlisted(productID: productID)
+    }
 }
 
-func execute(productID: String) -> AnyPublisher<Bool?, Never> {
-    repository
-        .observeIsWishlisted(productID: productID)
-        .receive(on: DispatchQueue.main)
-        .eraseToAnyPublisher()
+struct AddProductToWishlistUseCase {
+    private let repository: WishlistRepository
+    init(repository: WishlistRepository) { self.repository = repository }
+
+    func callAsFunction(productID: String) async throws {
+        try await repository.addToWishlist(productID: productID)
+    }
 }
+
+struct RemoveProductFromWishlistUseCase {
+    private let repository: WishlistRepository
+    init(repository: WishlistRepository) { self.repository = repository }
+
+    func callAsFunction(productID: String) async throws {
+        try await repository.removeFromWishlist(productID: productID)
+    }
+}
+
 ```
 
 **3. Set Up ViewModel to Use UseCase**
 
 ```
-final class ProductWishlistViewModel: StateViewModel {
+import Combine
 
+@MainActor
+final class WishlistButtonViewModel: ObservableObject {
     @Published private(set) var isWishlisted: Bool = false
 
-    private var cancellables = Set<AnyCancellable>()
-    private let observeIsWishlisted: ObserveProductIsWishlistedStateUseCase
+    private let productID: String
+    private let observeProductInWishlist: ObserveProductInWishlistUseCase
+    private let addProductToWishlist: AddProductToWishlistUseCase
+    private let removeProductFromWishlist: RemoveProductFromWishlistUseCase
 
-    init(observeIsWishlisted: ObserveProductIsWishlistedStateUseCase, productID: String) {
-        self.observeIsWishlisted = observeIsWishlisted
-        observeWishlistedState(productID: productID)
+    private var cancellables = Set<AnyCancellable>()
+
+    init(
+        productID: String,
+        observeProductInWishlist: ObserveProductInWishlistUseCase,
+        addProductToWishlist: AddProductToWishlistUseCase,
+        removeProductFromWishlist: RemoveProductFromWishlistUseCase
+    ) {
+        self.productID = productID
+        self.observeProductInWishlist = observeProductInWishlist
+        self.addProductToWishlist = addProductToWishlist
+        self.removeProductFromWishlist = removeProductFromWishlist
+        observeWishlistState()
     }
 
-    private func observeWishlistedState(productID: String) {
-        observeIsWishlisted.execute(productID: productID)
+    private func observeWishlistState() {
+        observeProductInWishlist(productID: productID)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] isWishlisted in
-                self?.isWishlisted = isWishlisted ?? false
+                self?.isWishlisted = isWishlisted
             }
             .store(in: &cancellables)
     }
+
+    func toggleWishlist() {
+        let previousValue = isWishlisted
+        isWishlisted.toggle()
+
+        Task { @MainActor in
+            do {
+                if isWishlisted {
+                    try await addProductToWishlist(productID: productID)
+                } else {
+                    try await removeProductFromWishlist(productID: productID)
+                }
+            } catch {
+                isWishlisted = previousValue
+            }
+        }
+    }
 }
+
 ```
