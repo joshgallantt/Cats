@@ -225,7 +225,7 @@ final class WishlistButtonViewModel: ObservableObject {
     }
 
     private func observeWishlistState() {
-        observeProductInWishlist(productID: productID)
+        observeProductInWishlist.execute(productID: productID)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isWishlisted in
                 self?.isWishlisted = isWishlisted
@@ -240,9 +240,9 @@ final class WishlistButtonViewModel: ObservableObject {
         Task { @MainActor in
             do {
                 if isWishlisted {
-                    try await addProductToWishlist(productID: productID)
+                    try await addProductToWishlist.execute(productID: productID)
                 } else {
-                    try await removeProductFromWishlist(productID: productID)
+                    try await removeProductFromWishlist.execute(productID: productID)
                 }
             } catch {
                 isWishlisted = previousValue
