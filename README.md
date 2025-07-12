@@ -70,16 +70,17 @@ A protocol for view models that publish transient events (navigation, alerts, si
 
 **Example:**
 ```
-protocol ViewEvent {}
+// Define event types as structs conforming to ViewEvent
 struct LoginSucceeded: ViewEvent {}
 struct LoginFailed: ViewEvent { let message: String }
 
-final class LoginViewModel: EventViewModel {
+// ViewModel implementation
+final class LoginViewModel: EventViewModel, ObservableObject {
     private let eventSubject = PassthroughSubject<ViewEvent, Never>()
     var eventPublisher: AnyPublisher<ViewEvent, Never> { eventSubject.eraseToAnyPublisher() }
 
     func login(username: String, password: String) {
-        if username == "cat" && password == "meow" {
+        if username == "cat", password == "meow" {
             eventSubject.send(LoginSucceeded())
         } else {
             eventSubject.send(LoginFailed(message: "Invalid credentials"))
@@ -101,11 +102,13 @@ struct LoginView: View {
             }
         }
         .onReceive(viewModel.eventPublisher) { event in
-            if let _ = event as? LoginSucceeded {
+            switch event {
+            case is LoginSucceeded:
                 message = "Welcome!"
-            }
-            if let failure = event as? LoginFailed {
+            case let failure as LoginFailed:
                 message = "Login failed: \(failure.message)"
+            default:
+                break
             }
         }
     }

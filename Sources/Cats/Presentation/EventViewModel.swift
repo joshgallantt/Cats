@@ -7,30 +7,38 @@
 
 import Combine
 
-/// A protocol for view models that publish events to be observed by external components, such as views or coordinators.
+/// Marker protocol for view events, allowing polymorphic handling of event types.
+public protocol ViewEvent {}
+
+
+/// A protocol for view models that publish transient, one-off events (such as navigation, alerts, or side effects) to be observed by external components like views or coordinators.
 ///
-/// Use this protocol when you want your view model to communicate one-off actions or effects (navigation, alerts, etc)
-/// to interested observers. It is complementary to `StateViewModel`, which manages continuous state.
+/// Use this protocol when your view model needs to communicate actions or effects that are not part of continuous state.
+/// It is complementary to `StateViewModel`, which manages persistent or continuous view state.
 ///
-/// Example usage:
+/// ### Usage:
+/// 1. Define each event as a struct (or class) conforming to `ViewEvent`.
+/// 2. Expose an `eventPublisher` using a `PassthroughSubject<ViewEvent, Never>`.
+/// 3. Send specific event types as needed from your view model methods.
+///
 /// ```swift
+/// protocol ViewEvent {}
+/// struct LoginSucceeded: ViewEvent {}
+/// struct LoginFailed: ViewEvent { let message: String }
+///
 /// final class LoginViewModel: EventViewModel {
-///     enum ViewEvent { case loginSucceeded, loginFailed(String) }
 ///     private let eventSubject = PassthroughSubject<ViewEvent, Never>()
 ///     var eventPublisher: AnyPublisher<ViewEvent, Never> { eventSubject.eraseToAnyPublisher() }
 ///
 ///     func login(username: String, password: String) {
-///         // ... on success:
-///         eventSubject.send(.loginSucceeded)
-///         // ... on failure:
-///         eventSubject.send(.loginFailed("Invalid password"))
+///         if username == "cat", password == "meow" {
+///             eventSubject.send(LoginSucceeded())
+///         } else {
+///             eventSubject.send(LoginFailed(message: "Invalid password"))
+///         }
 ///     }
 /// }
 /// ```
 public protocol EventViewModel: AnyObject {
-    /// The type describing all possible events this view model can emit.
-    associatedtype ViewEvent
-    
-    /// A publisher that emits view events.
     var eventPublisher: AnyPublisher<ViewEvent, Never> { get }
 }
