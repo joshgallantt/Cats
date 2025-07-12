@@ -32,7 +32,8 @@ A protocol for view models that expose a single, immutable state struct, and a p
 - Mutate state via methods. Observers react to changes via the publisher.
 
 **Example:**
-```
+
+```Swift
 final class CounterViewModel: StateViewModel {
     struct State { var count: Int = 0 }
     @Published private(set) var state = State()
@@ -69,7 +70,8 @@ A protocol for view models that publish transient events (navigation, alerts, si
 - Send events using a PassthroughSubject from methods.
 
 **Example:**
-```
+
+```Swift
 // Define event types as structs conforming to ViewEvent
 struct LoginSucceeded: ViewEvent {}
 struct LoginFailed: ViewEvent { let message: String }
@@ -132,7 +134,8 @@ Cats provides a generic, thread-safe, LRU + TTL in-memory cache with Combine pub
 **Examples:**
 
 **1. Set Up Repository to Use Cache**
-```
+
+```Swift
 import Combine
 
 final class WishlistRepository {
@@ -164,8 +167,9 @@ final class WishlistRepository {
 
 ```
 
-**2. Set Up Use Cases to Use Repository**
-```
+**2. Set Up Use Cases to Use Repository**\
+
+```Swift
 struct ObserveProductInWishlistUseCase {
     private let repository: WishlistRepository
     init(repository: WishlistRepository) { self.repository = repository }
@@ -197,7 +201,7 @@ struct RemoveProductFromWishlistUseCase {
 
 **3. Set Up ViewModel to Use UseCase**
 
-```
+```Swift
 import Combine
 
 @MainActor
