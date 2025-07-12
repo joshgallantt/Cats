@@ -207,11 +207,12 @@ import Combine
 @MainActor
 final class WishlistButtonViewModel: ObservableObject {
     @Published private(set) var isWishlisted: Bool = false
+    @Published private(set) var error: String?
 
-    private let productID: String
     private let observeProductInWishlist: ObserveProductInWishlistUseCase
     private let addProductToWishlist: AddProductToWishlistUseCase
     private let removeProductFromWishlist: RemoveProductFromWishlistUseCase
+    private let productID: String
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -229,7 +230,7 @@ final class WishlistButtonViewModel: ObservableObject {
     }
 
     private func observeWishlistState() {
-        observeProductInWishlist.execute(productID: productID)
+        observeProductInWishlist(productID: productID)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isWishlisted in
                 self?.isWishlisted = isWishlisted
@@ -238,18 +239,37 @@ final class WishlistButtonViewModel: ObservableObject {
     }
 
     func toggleWishlist() {
+        if isWishlisted {
+            removeFromWishlist()
+        } else {
+            addToWishlist()
+        }
+    }
+
+    private func addToWishlist() {
         let previousValue = isWishlisted
-        isWishlisted.toggle()
+        isWishlisted = true
 
         Task { @MainActor in
             do {
-                if isWishlisted {
-                    try await addProductToWishlist.execute(productID: productID)
-                } else {
-                    try await removeProductFromWishlist.execute(productID: productID)
-                }
+                try await addProductToWishlist.execute(productID: productID)
             } catch {
                 isWishlisted = previousValue
+                error = error.localizedDescription
+            }
+        }
+    }
+
+    private func removeFromWishlist() {
+        let previousValue = isWishlisted
+        isWishlisted = false
+
+        Task { @MainActor in
+            do {
+                try await removeProductFromWishlist.execute(productID: productID)
+            } catch {
+                isWishlisted = previousValue
+                error = error.localizedDescription
             }
         }
     }
