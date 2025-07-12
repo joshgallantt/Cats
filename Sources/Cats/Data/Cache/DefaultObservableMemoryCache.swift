@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-/// An in-memory, thread-safe generic cache with optional size limit (LRU eviction) and entry expiration (TTL expiry).
+/// An in-memory, thread-safe, generic cache with size limit (LRU eviction) and entry expiration (TTL expiry).
 /// Supports per-key value observation using Combine publishers.
 ///
 /// Features:
@@ -18,7 +18,7 @@ import Combine
 /// - Thread safety with NSLock.
 /// - Combine publisher for value changes per key.
 /// - Manual cache and expiry management.
-public final class DefaultObservableMemoryCache<Key: Hashable, Value>: ObservableMemoryCache {
+public final class DefaultObservableMemoryCache<Key: Hashable, Value>: ObservableMemoryCache, @unchecked Sendable {
     
     // MARK: - Private properties
 
@@ -73,12 +73,12 @@ public final class DefaultObservableMemoryCache<Key: Hashable, Value>: Observabl
     /// Notifies publisher for this key.
     public func put(_ key: Key, value: Value) {
         let expiry = expiresAfter.map { Date().addingTimeInterval($0) }
-        modify(key) { slot in
-            slot = (value, expiry)
-            updateLRU_locked(for: key)
-            subjects[key, default: .init(nil)].send(value)
-            evictIfNeeded_locked()
-        }
+        lock.lock()
+        defer { lock.unlock() }
+        storage[key] = (value, expiry)
+        updateLRU_locked(for: key)
+        subjects[key, default: .init(nil)].send(value)
+        evictIfNeeded_locked()
     }
 
     /// Retrieves the value for the given key, if present and not expired.
@@ -210,3 +210,4 @@ public final class DefaultObservableMemoryCache<Key: Hashable, Value>: Observabl
         }
     }
 }
+

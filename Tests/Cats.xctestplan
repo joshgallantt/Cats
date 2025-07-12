@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "28E79C2B-8332-4948-8410-F960F4BB1CC5",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "CatsTests",
+        "name" : "CatsTests"
+      }
+    }
+  ],
+  "version" : 1
+}
