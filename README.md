@@ -203,16 +203,17 @@ struct RemoveProductFromWishlistUseCase {
 
 ```Swift
 import Combine
+import Foundation
 
 @MainActor
 final class WishlistButtonViewModel: ObservableObject {
     @Published private(set) var isWishlisted: Bool = false
-    @Published private(set) var error: String?
+    
+    private let productID: String
 
     private let observeProductInWishlist: ObserveProductInWishlistUseCase
     private let addProductToWishlist: AddProductToWishlistUseCase
     private let removeProductFromWishlist: RemoveProductFromWishlistUseCase
-    private let productID: String
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -226,53 +227,39 @@ final class WishlistButtonViewModel: ObservableObject {
         self.observeProductInWishlist = observeProductInWishlist
         self.addProductToWishlist = addProductToWishlist
         self.removeProductFromWishlist = removeProductFromWishlist
+
         observeWishlistState()
     }
 
     private func observeWishlistState() {
-        observeProductInWishlist(productID: productID)
+        observeProductInWishlist.execute(productID: productID)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] isWishlisted in
-                self?.isWishlisted = isWishlisted
+            .sink { [weak self] value in
+                self?.isWishlisted = value
             }
             .store(in: &cancellables)
     }
 
     func toggleWishlist() {
-        if isWishlisted {
-            removeFromWishlist()
-        } else {
-            addToWishlist()
-        }
-    }
+        let newValue = !isWishlisted
+        isWishlisted = newValue
 
-    private func addToWishlist() {
-        let previousValue = isWishlisted
-        isWishlisted = true
-
-        Task { @MainActor in
+        Task(priority: .userInitiated) { [self, newValue] in
             do {
-                try await addProductToWishlist.execute(productID: productID)
+                if newValue {
+                    try await addProductToWishlist.execute(productID: productID)
+                } else {
+                    try await removeProductFromWishlist.execute(productID: productID)
+                }
             } catch {
-                isWishlisted = previousValue
-                error = error.localizedDescription
-            }
-        }
-    }
-
-    private func removeFromWishlist() {
-        let previousValue = isWishlisted
-        isWishlisted = false
-
-        Task { @MainActor in
-            do {
-                try await removeProductFromWishlist.execute(productID: productID)
-            } catch {
-                isWishlisted = previousValue
-                error = error.localizedDescription
+                await MainActor.run {
+                    isWishlisted = !newValue
+                }
             }
         }
     }
 }
+
+
 
 ```
