@@ -14,9 +14,14 @@ import Combine
 ///
 /// Example usage:
 /// ```swift
+///struct CounterStateState {
+///     var count: Int = 0
+///}
+///
 /// final class CounterViewModel: StateViewModel {
-///     struct State { var count: Int = 0 }
+///
 ///     @Published private(set) var state = State()
+///
 ///     var statePublisher: Published<State>.Publisher { $state }
 ///
 ///     func increment() { state.count += 1 }

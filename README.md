@@ -13,7 +13,7 @@ Cats is a toolkit for building scalable, testable, and reactive apps in Swift us
 ## Features
 
 - Generic, thread-safe, observable in-memory cache (`ObservableMemoryCache`, `DefaultObservableMemoryCache`)
-- LRU (Least Recently Used) eviction and per-entry TTL (time-to-live) expiry
+- LRU (Least Recently Used) eviction and global TTL (time-to-live) expiry
 - Combine publisher support for cache value changes and view model communication
 - Protocol-oriented design to promote testability and separation of concerns
 - Full test suite for cache correctness and edge cases
@@ -126,7 +126,7 @@ Cats provides a generic, thread-safe, LRU + TTL in-memory cache with Combine pub
 **Features:**
 - Generic key-value storage
 - LRU eviction when exceeding max size
-- Optional TTL (per-entry expiry)
+- Optional TTL (global expiry)
 - Per-key Combine publisher for observation
 - Manual remove and clear
 - Thread-safety

@@ -300,5 +300,55 @@ final class DefaultObservableMemoryCacheTests: XCTestCase {
         let value = cache.get("a")
         XCTAssert((0..<100).contains(value ?? -1), "Final value after concurrent puts should be one of the values put.")
     }
+    
+    // MARK: - Contains & Count
+
+    func test_contains_returnsTrueIfPresentAndNotExpired() {
+        let cache = Cache()
+        XCTAssertFalse(cache.contains("foo"), "Should not contain key before put.")
+        cache.put("foo", value: 1)
+        XCTAssertTrue(cache.contains("foo"), "Should contain key after put.")
+        cache.remove("foo")
+        XCTAssertFalse(cache.contains("foo"), "Should not contain key after remove.")
+    }
+
+    func test_contains_returnsFalseIfExpired() {
+        let cache = Cache(expiresAfter: 0.01)
+        cache.put("bar", value: 2)
+        XCTAssertTrue(cache.contains("bar"), "Should contain key right after put.")
+        let exp = expectation(description: "wait for expiry")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+            XCTAssertFalse(cache.contains("bar"), "Should not contain key after TTL expiry.")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 1)
+    }
+
+    func test_count_reflectsNumberOfValidEntries() {
+        let cache = Cache()
+        XCTAssertEqual(cache.count, 0, "New cache should have count 0.")
+        cache.put("a", value: 1)
+        XCTAssertEqual(cache.count, 1, "Count should be 1 after one put.")
+        cache.put("b", value: 2)
+        XCTAssertEqual(cache.count, 2, "Count should be 2 after two puts.")
+        cache.remove("a")
+        XCTAssertEqual(cache.count, 1, "Count should decrease after remove.")
+        cache.clear()
+        XCTAssertEqual(cache.count, 0, "Count should be 0 after clear.")
+    }
+
+    func test_count_ignoresExpiredEntries() {
+        let cache = Cache(expiresAfter: 0.01)
+        cache.put("x", value: 1)
+        cache.put("y", value: 2)
+        XCTAssertEqual(cache.count, 2, "Should count both entries initially.")
+        let exp = expectation(description: "wait for TTL expiry")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+            XCTAssertEqual(cache.count, 0, "Expired entries should not count toward total.")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 1)
+    }
+
 }
 
