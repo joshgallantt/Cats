@@ -42,22 +42,16 @@ public final class DefaultObservableMemoryCache<Key: Hashable, Value>: Observabl
     /// - Parameters:
     ///   - maxSize: Maximum cache size. When set, cache will not store more than `maxSize` items (LRU policy). Must be positive if provided.
     ///   - expiresAfter: Optional time-to-live (in seconds) for cache entries. When set, each entry expires after this interval. Must be positive if provided.
-    public init(maxSize: Int? = nil, expiresAfter: TimeInterval? = nil) {
+    public init(maxSize: Int? = 500, expiresAfter: TimeInterval? = nil) {
         if let size = maxSize, size > 0 {
             self.maxSize = size
         } else {
-            if let _ = maxSize {
-                print("Warning: maxSize must be positive, ignoring provided value and defaulting to 500.")
-            }
             self.maxSize = 500
         }
 
         if let expiresAfter, expiresAfter > 0 {
             self.expiresAfter = expiresAfter
         } else {
-            if let _ = expiresAfter {
-                print("Warning: expiresAfter must be positive, ignoring provided value. Defaulting to no expiration.")
-            }
             self.expiresAfter = nil
         }
     }
